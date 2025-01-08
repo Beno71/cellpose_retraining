@@ -337,7 +337,7 @@ def masks_to_flows(masks, device=None, niter=None):
 
     if device is not None:
         if device.type == "cuda" or device.type == "mps":
-            masks_to_flows_device = masks_to_flows_cpu # Use CPU version by default to prevent error
+            masks_to_flows_device = masks_to_flows_gpu # Use CPU version by default to prevent error
         else:
             masks_to_flows_device = masks_to_flows_cpu
     else:

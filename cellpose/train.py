@@ -573,6 +573,8 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
                 f"{iepoch}, train_loss={lavg:.4f}, test_loss={lavgt:.4f}, LR={LR[iepoch]:.6f}, time {time.time()-t0:.2f}s"
             )
             best_test_loss = lavgt
+            if wandb_session_id is not None:
+                wandb.log({"custom_best_test_loss": lavgt}) 
         elif iepoch % 10 == 0:
             train_logger.info(
                     f"{iepoch}, train_loss={lavg:.4f}, test_loss={lavgt:.4f}, LR={LR[iepoch]:.6f}, time {time.time()-t0:.2f}s"
