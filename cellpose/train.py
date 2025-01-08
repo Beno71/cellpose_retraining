@@ -9,7 +9,7 @@ from torch import nn
 from tqdm import trange
 from numba import prange
 import wandb
-import datetime
+from datetime import datetime
 
 import logging
 
@@ -461,25 +461,25 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
     lavg, nsum = 0, 0
     train_losses, test_losses = np.zeros(n_epochs), np.zeros(n_epochs)
     best_test_loss = np.inf # for saving best models during training
+    if wandb_session_id is not None:
+        # Log to wandb
+        now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        # Initialize Weights & Biases (WandB)
+        wandb_name = f'cellpose_retraining_{now}'
+        # Define a config dictionary object
+        wandb_config = {
+            "epochs": n_epochs,
+            "batch_size": batch_size,
+            "learning_rate": optimizer.param_groups[0]['lr'],
+            "sess_id": wandb_session_id
+        }
 
-    # Log to wandb
-    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    # Initialize Weights & Biases (WandB)
-    wandb_name = f'cellpose_retraining_{now}'
-    # Define a config dictionary object
-    wandb_config = {
-        "epochs": n_epochs,
-        "batch_size": batch_size,
-        "learning_rate": optimizer.param_groups[0]['lr'],
-        "sess_id": wandb_session_id
-    }
-
-    # Pass the config dictionary when you initialize W&B
-    wandb.init(
-        project=wandb_project_id, 
-        name=wandb_name,
-        config=wandb_config
-    )
+        # Pass the config dictionary when you initialize W&B
+        wandb.init(
+            project=wandb_project_id, 
+            name=wandb_name,
+            config=wandb_config
+        )
 
     for iepoch in range(n_epochs):
         np.random.seed(iepoch)
@@ -519,10 +519,10 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
             # keep track of average training loss across epochs
             lavg += train_loss
             nsum += len(imgi)
-
-            if (k + 1) % 10 == 0:
-                step_avg_loss = lavg / (k + 1)
-                wandb.log({"train_loss_step": train_loss, "train_loss_avg_step": step_avg_loss}) 
+            if wandb_session_id is not None:
+                if (k + 1) % 10 == 0:
+                    step_avg_loss = lavg / (k + 1)
+                    wandb.log({"train_loss_step": train_loss, "train_loss_avg_step": step_avg_loss}) 
             
             # per epoch training loss
             train_losses[iepoch] += train_loss
@@ -559,8 +559,9 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
                     lavgt += test_loss
             lavgt /= len(rperm)
             test_losses[iepoch] = lavgt
-
-        wandb.log({"Epoch": iepoch + 1, "train_loss": train_losses[iepoch], 'test_loss': test_losses[iepoch]})
+        
+        if wandb_session_id is not None:
+            wandb.log({"Epoch": iepoch + 1, "train_loss": train_losses[iepoch], 'test_loss': test_losses[iepoch]})
         
         if lavgt < best_test_loss:
             train_logger.info(f'Best test loss improved from {best_test_loss} to {lavgt}.')
@@ -584,9 +585,9 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
                 filename0 = filename
             train_logger.info(f"saving network parameters to {filename0}")
             net.save_model(filename0)
-        
-    wandb.finish()
-    
+    if wandb_session_id is not None:
+        wandb.finish()
+
     net.save_model(filename)
 
     return filename, train_losses, test_losses
