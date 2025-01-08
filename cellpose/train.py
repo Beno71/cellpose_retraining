@@ -452,15 +452,7 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
 
     t0 = time.time()
     model_name = f"cellpose_{t0}" if model_name is None else model_name
-    save_path = Path.cwd() if save_path is None else Path(save_path)
-    filename = save_path / "models" / model_name
-    (save_path / "models").mkdir(exist_ok=True)
-
-    train_logger.info(f">>> saving model to {filename}")
-
-    lavg, nsum = 0, 0
-    train_losses, test_losses = np.zeros(n_epochs), np.zeros(n_epochs)
-    best_test_loss = np.inf # for saving best models during training
+    
     if wandb_session_id is not None:
         # Log to wandb
         now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -480,6 +472,16 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
             name=wandb_name,
             config=wandb_config
         )
+        model_name = wandb_name
+    save_path = Path.cwd() if save_path is None else Path(save_path)
+    filename = save_path / "models" / model_name
+    (save_path / "models").mkdir(exist_ok=True)
+
+    train_logger.info(f">>> saving model to {filename}")
+
+    lavg, nsum = 0, 0
+    train_losses, test_losses = np.zeros(n_epochs), np.zeros(n_epochs)
+    best_test_loss = np.inf # for saving best models during training        
 
     for iepoch in range(n_epochs):
         np.random.seed(iepoch)
